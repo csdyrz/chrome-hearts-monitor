@@ -1,13 +1,17 @@
 {
   "serverchan_sendkey": "",
   "poll_interval_seconds": 90,
+  "auto_discover_categories": true,
   "categories": [
+    "shop", "mens", "womens",
+    "scents", "baccarat", "intimates", "boxers-leggings", "underwear", "socks", "scarf",
     "hoodie", "hoodies", "sweatshirt", "sweatshirts",
     "t-shirt", "shirt", "shirts",
-    "jacket", "sweater", "sweaters",
-    "pants", "shorts", "denim",
-    "mens", "womens", "shop"
+    "jacket", "sweater", "sweaters", "pants", "shorts", "denim",
+    "hat", "hats", "beanie", "bags", "eyewear", "shoes", "boots",
+    "belt", "gloves", "tie", "pendants", "charms", "home", "jewelry"
   ],
+  "max_items_per_message": 40,
   "notify_out_of_stock": true,
   "desktop_notification": true,
   "first_run_silent": true,
