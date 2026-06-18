@@ -344,8 +344,9 @@ def notify(cfg, new_products):
 # ---------------------------------------------------------------- 一轮处理
 def process(cfg, old_items, first_run):
     """跑一轮,返回 (new_items, today)。"""
-    present, total, ncat, failed = scan(cfg)
+    present, _total, ncat, failed = scan(cfg)
     today = date.today().isoformat()
+    n_present = len(present)  # 唯一 SKU 数(跨品类已去重),口径与健康度守门一致
     scan_clean = scan_trustworthy(failed, len(present), len(old_items),
                                   cfg.get("min_scan_health_ratio", 0.5))
     if not scan_clean and failed == 0 and old_items:
@@ -357,13 +358,13 @@ def process(cfg, old_items, first_run):
         new_items = {pid: {"status": ("oos" if p["oos"] else "in_stock"), "missing": 0}
                      for pid, p in present.items()}
         logger.info("扫描完成:品类 %d 个,在架 %d 件 —— 首次运行,建立基线 %d 个,不推送。",
-                    ncat, total, len(new_items))
+                    ncat, n_present, len(new_items))
         save_state(new_items, today)
         return new_items, today
 
     to_notify, new_items = compute_events(old_items, present, scan_clean, cfg)
     logger.info("扫描完成:品类 %d 个(失败 %d),在架 %d 件,待通知 %d 件(上新/补货)。",
-                ncat, failed, total, len(to_notify))
+                ncat, failed, n_present, len(to_notify))
 
     if to_notify:
         if notify(cfg, to_notify):

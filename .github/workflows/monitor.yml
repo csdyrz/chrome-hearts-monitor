@@ -39,7 +39,8 @@ jobs:
             git config user.email "github-actions[bot]@users.noreply.github.com"
             git add state.json
             git commit -m "chore: update state $(date -u +%FT%TZ)"
-            git push
+            # 若远程已被其它提交推进,先 rebase 再推,避免状态丢失/红叉
+            git push || { git pull --rebase --autostash && git push; }
           else
             echo "无新增 SKU,状态未变,跳过提交。"
           fi
