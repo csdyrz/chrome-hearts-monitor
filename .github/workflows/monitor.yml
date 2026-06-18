@@ -1,0 +1,45 @@
+name: chrome-hearts-monitor
+
+# 每 5 分钟在 GitHub 云端跑一次(电脑关机也照跑)。
+# 注意:GitHub 定时任务最快 5 分钟一次,且高峰期偶有延迟,属正常现象。
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch: {}   # 也支持在网页上手动触发
+
+permissions:
+  contents: write          # 允许把 state.json 提交回仓库以保留基线
+
+concurrency:
+  group: ch-monitor        # 避免两次定时任务重叠互相覆盖
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 安装依赖
+        run: pip install requests beautifulsoup4
+
+      - name: 运行监控
+        env:
+          SERVERCHAN_SENDKEY: ${{ secrets.SERVERCHAN_SENDKEY }}
+        run: python chrome_hearts_monitor.py --once
+
+      - name: 状态有变化时保存回仓库
+        run: |
+          if [ -n "$(git status --porcelain state.json)" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add state.json
+            git commit -m "chore: update state $(date -u +%FT%TZ)"
+            git push
+          else
+            echo "无新增 SKU,状态未变,跳过提交。"
+          fi

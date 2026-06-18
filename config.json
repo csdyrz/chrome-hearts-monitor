@@ -1,0 +1,16 @@
+{
+  "serverchan_sendkey": "",
+  "poll_interval_seconds": 90,
+  "categories": [
+    "hoodie", "hoodies", "sweatshirt", "sweatshirts",
+    "t-shirt", "shirt", "shirts",
+    "jacket", "sweater", "sweaters",
+    "pants", "shorts", "denim",
+    "mens", "womens", "shop"
+  ],
+  "notify_out_of_stock": true,
+  "desktop_notification": true,
+  "first_run_silent": true,
+  "request_timeout_seconds": 25,
+  "max_retries_per_category": 2
+}
