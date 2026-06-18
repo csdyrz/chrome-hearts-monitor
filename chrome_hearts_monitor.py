@@ -207,6 +207,16 @@ def scan(cfg):
     return present, total, len(cats), failed
 
 
+def scan_trustworthy(failed, present_count, known_count, ratio):
+    """判断本轮扫描是否可信(用于决定是否处理'消失/下架')。
+    有抓取失败、或在架数骤降到基线的 ratio 以下(疑似被风控喂空页),都视为不可信。"""
+    if failed > 0:
+        return False
+    if known_count <= 0:
+        return True
+    return present_count >= known_count * ratio
+
+
 # ---------------------------------------------------------------- 判新核心(纯函数,便于测试)
 def compute_events(old_items, present, scan_clean, cfg):
     """根据上一轮状态与本轮在架商品,算出需要通知的商品和新状态。
@@ -336,7 +346,11 @@ def process(cfg, old_items, first_run):
     """跑一轮,返回 (new_items, today)。"""
     present, total, ncat, failed = scan(cfg)
     today = date.today().isoformat()
-    scan_clean = (failed == 0)
+    scan_clean = scan_trustworthy(failed, len(present), len(old_items),
+                                  cfg.get("min_scan_health_ratio", 0.5))
+    if not scan_clean and failed == 0 and old_items:
+        logger.warning("本轮在架数骤降(%d < 基线%d×%.2f),疑似抓取异常,暂不处理下架。",
+                       len(present), len(old_items), cfg.get("min_scan_health_ratio", 0.5))
     suppress = first_run and cfg.get("first_run_silent", True)
 
     if suppress:

@@ -78,5 +78,24 @@ check("售罄上新不推(按配置)", to_notify == [])
 to_notify, st = m.compute_events(st, {"A": prod("A", oos=False)}, True, cfg2)
 check("随后回有货 -> 补货推送", names(to_notify) == [("A", "补货")])
 
+print("场景10:阈值=1 时,下架仅1轮即可,再上新立即重新通知")
+cfg1 = {"notify_out_of_stock": True, "absence_cycles_before_relist": 1}
+st = {"A": {"status": "in_stock", "missing": 0}}
+_, st = m.compute_events(st, {}, True, cfg1)            # 干净扫描消失1轮
+check("阈值1:消失1轮即判下架(移出状态)", "A" not in st)
+to_notify, st = m.compute_events(st, {"A": prod("A")}, True, cfg1)
+check("阈值1:再上新立即通知", names(to_notify) == [("A", "上新")])
+
+print("场景11:扫描健康度守门(防风控空页造成的误报)")
+check("有失败 -> 不可信", m.scan_trustworthy(1, 50, 50, 0.5) is False)
+check("在架骤降到基线一半以下 -> 不可信", m.scan_trustworthy(0, 3, 50, 0.5) is False)
+check("在架正常 -> 可信", m.scan_trustworthy(0, 48, 50, 0.5) is True)
+check("首轮无基线 -> 可信", m.scan_trustworthy(0, 0, 0, 0.5) is True)
+# 端到端:阈值=1 但风控喂空页(present 骤降)时,不应把商品判下架
+big = {f"P{i}": {"status": "in_stock", "missing": 0} for i in range(50)}
+usable = m.scan_trustworthy(0, 2, len(big), 0.5)        # present 仅2件 -> 不可信
+_, st = m.compute_events(big, {"P0": prod("P0"), "P1": prod("P1")}, usable, cfg1)
+check("空页骤降时不误删商品(其余48件仍在状态)", len(st) == 50)
+
 print(f"\n结果:通过 {passed} / 失败 {failed}")
 exit(1 if failed else 0)

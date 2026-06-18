@@ -12,7 +12,8 @@
     "belt", "gloves", "tie", "pendants", "charms", "home", "jewelry"
   ],
   "max_items_per_message": 40,
-  "absence_cycles_before_relist": 2,
+  "absence_cycles_before_relist": 1,
+  "min_scan_health_ratio": 0.5,
   "notify_out_of_stock": true,
   "desktop_notification": true,
   "first_run_silent": true,
