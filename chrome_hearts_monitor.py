@@ -1,20 +1,27 @@
 # -*- coding: utf-8 -*-
 """
-Chrome Hearts 官网全品类上新监控
-================================
-轮询 chromehearts.com 的所有品类,发现任何新上架商品(按商品 SKU 判新)就推送到微信(Server酱)。
+Chrome Hearts 官网全品类上新/补货监控
+====================================
+轮询 chromehearts.com 的所有品类,发现任何新上架或补货的商品就推送到微信(Server酱)。
 
 官网是 Salesforce Commerce Cloud (Demandware),品类页服务端渲染,
 每个商品带 <span class="product-metadata" data-pid/data-name/data-price/...>,
 所以用普通 HTTP 请求即可解析,无需浏览器。
 
-品类来源 = 配置里的静态清单 ∪ 每轮从首页导航自动发现的品类(确保任何新品类也能覆盖)。
+判新模型(关键):不是"见过就永久拉黑",而是跟踪每个 SKU 的【可买状态】,
+在以下"状态跃迁"时通知,从而能捕捉【下架后再次上新】和【售罄后补货】:
+  - 之前不存在(从未见过 / 已下架移除)→ 这次出现        =》上新
+  - 之前售罄(oos)→ 这次有货(in_stock)                =》补货
+为避免抓取偶发失败造成误判,商品需连续多轮(absence_cycles_before_relist)从干净的扫描里
+消失后,才认为"已下架",再次出现才算新上新。
+
+品类来源 = 配置静态清单 ∪ 每轮从首页导航自动发现的品类(覆盖官网当前/新增的任何品类)。
 
 用法:
-    python chrome_hearts_monitor.py            # 持续监控(本地常驻用法)
-    python chrome_hearts_monitor.py --once     # 只跑一轮就退出(GitHub Actions 云端用法)
-    python chrome_hearts_monitor.py --selftest # 用香水/袜子验证抓取(无需 sendkey)
-    python chrome_hearts_monitor.py --test-push# 发一条测试消息到微信,验证 Server酱 配置
+    python chrome_hearts_monitor.py            # 持续监控(本地常驻)
+    python chrome_hearts_monitor.py --once     # 跑一轮就退出(GitHub Actions 云端用)
+    python chrome_hearts_monitor.py --selftest # 验证抓取(无需 sendkey)
+    python chrome_hearts_monitor.py --test-push# 发测试消息到微信,验证 Server酱
 """
 import sys
 import os
@@ -43,7 +50,6 @@ HEADERS = {
     "Accept-Language": "en-US,en;q=0.9",
     "Connection": "keep-alive",
 }
-# 首页导航里这些不是商品品类,自动发现时排除
 NON_CATEGORY = {
     "cart", "checkout", "login", "logout", "register", "account", "contact",
     "search", "wishlist", "stores", "locations", "magazine", "about", "faq",
@@ -67,38 +73,44 @@ logger.addHandler(_sh)
 def load_config():
     with open(CONFIG_PATH, "r", encoding="utf-8") as f:
         cfg = json.load(f)
-    # 环境变量优先(GitHub Actions 用 Secret 注入,避免把 key 写进公开仓库)
-    env_key = os.environ.get("SERVERCHAN_SENDKEY")
+    env_key = os.environ.get("SERVERCHAN_SENDKEY")  # 环境变量优先(GitHub Secret)
     if env_key:
         cfg["serverchan_sendkey"] = env_key.strip()
     return cfg
 
 
 def load_state():
-    """返回 (seen_pids:set, stored_date:str, existed:bool)。existed=False 表示首次运行。"""
+    """返回 (items:dict, stored_date:str, existed:bool)。
+    items = {pid: {"status": "in_stock"/"oos", "missing": int}}。"""
     if not os.path.exists(STATE_PATH):
-        return set(), "", False
+        return {}, "", False
     try:
         with open(STATE_PATH, "r", encoding="utf-8") as f:
             data = json.load(f)
-        return set(data.get("seen_pids", [])), data.get("date", ""), True
+        if isinstance(data.get("items"), dict):
+            return data["items"], data.get("date", ""), True
+        # 兼容旧格式(seen_pids 列表):迁移为已知商品,状态未知按 in_stock 处理
+        if isinstance(data.get("seen_pids"), list):
+            items = {pid: {"status": "in_stock", "missing": 0} for pid in data["seen_pids"]}
+            return items, data.get("date", ""), True
+        return {}, "", True
     except Exception as e:
         logger.warning("状态文件读取失败,当作首次运行: %s", e)
-        return set(), "", False
+        return {}, "", False
 
 
-def save_state(seen_pids, day):
-    """确定性写入:内容只取决于 seen + 日期,便于 git 仅在真有变化(含每日心跳)时提交。"""
+def save_state(items, day):
+    """确定性写入,便于 git 仅在真有变化(含每日心跳)时提交。"""
     tmp = STATE_PATH + ".tmp"
     with open(tmp, "w", encoding="utf-8") as f:
-        json.dump({"seen_pids": sorted(seen_pids), "date": day},
+        json.dump({"items": items, "date": day},
                   f, ensure_ascii=False, indent=2, sort_keys=True)
-    os.replace(tmp, STATE_PATH)  # 原子替换,避免写一半损坏
+    os.replace(tmp, STATE_PATH)
 
 
 # ---------------------------------------------------------------- 品类发现 / 抓取
 def discover_categories(cfg):
-    """静态清单 ∪ 首页导航里出现的品类(自动覆盖官网当前/新增的任何品类)。"""
+    """静态清单 ∪ 首页导航里出现的品类。"""
     cats = list(dict.fromkeys(cfg.get("categories", [])))
     seen = set(cats)
     if not cfg.get("auto_discover_categories", True):
@@ -118,7 +130,7 @@ def discover_categories(cfg):
 
 
 def fetch_category(slug, cfg):
-    """抓一个品类页,返回商品 dict 列表。404 视为空品类返回 []。其它失败抛异常。"""
+    """抓一个品类页。404 视为空品类返回 []。其它失败抛异常。"""
     url = f"{BASE_URL}/{slug}"
     retries = cfg.get("max_retries_per_category", 2)
     last_err = None
@@ -127,7 +139,7 @@ def fetch_category(slug, cfg):
             r = requests.get(url, headers=HEADERS,
                              timeout=cfg.get("request_timeout_seconds", 25))
             if r.status_code == 404:
-                return []  # 该品类当前不存在,视为空,不报错不重试
+                return []
             r.raise_for_status()
             return parse_products(r.text, slug)
         except Exception as e:
@@ -138,7 +150,7 @@ def fetch_category(slug, cfg):
 
 
 def parse_products(html, slug):
-    """从品类页 HTML 解析商品。以 product-metadata 标签为权威来源。"""
+    """从品类页 HTML 解析商品。以 product-metadata 为权威来源。"""
     soup = BeautifulSoup(html, "html.parser")
     products = []
     for meta in soup.select("span.product-metadata[data-pid]"):
@@ -175,25 +187,61 @@ def parse_products(html, slug):
     return products
 
 
-def scan(cfg, seen):
-    """扫描所有品类,返回 (未见过的商品列表, 在架总数, 品类数)。不修改 seen。"""
-    candidates = {}
+def scan(cfg):
+    """扫描所有品类。返回 (present:dict[pid->product], 在架总数, 品类数, 抓取失败品类数)。"""
+    present = {}
     total = 0
+    failed = 0
     cats = discover_categories(cfg)
     for slug in cats:
         try:
             products = fetch_category(slug, cfg)
         except Exception as e:
-            logger.warning("品类 %s 抓取失败(本轮跳过,不影响判新): %s", slug, e)
+            failed += 1
+            logger.warning("品类 %s 抓取失败(本轮跳过): %s", slug, e)
             continue
         total += len(products)
         for p in products:
-            pid = p["pid"]
-            if pid in seen or pid in candidates:
-                continue
-            candidates[pid] = p
-        time.sleep(random.uniform(0.3, 0.7))  # 礼貌性间隔,降低风控概率
-    return list(candidates.values()), total, len(cats)
+            present.setdefault(p["pid"], p)  # 同一 SKU 多品类出现只取一次
+        time.sleep(random.uniform(0.3, 0.7))
+    return present, total, len(cats), failed
+
+
+# ---------------------------------------------------------------- 判新核心(纯函数,便于测试)
+def compute_events(old_items, present, scan_clean, cfg):
+    """根据上一轮状态与本轮在架商品,算出需要通知的商品和新状态。
+
+    old_items: {pid: {"status","missing"}}
+    present:   {pid: product}
+    scan_clean: 本轮是否所有品类都抓取成功(有失败则不处理"消失",防误判)
+    返回 (to_notify:list[product(带 event)], new_items:dict)
+    """
+    notify_oos = cfg.get("notify_out_of_stock", True)
+    threshold = cfg.get("absence_cycles_before_relist", 2)
+    new_items = {pid: dict(v) for pid, v in old_items.items()}
+    to_notify = []
+
+    for pid, p in present.items():
+        cur = "oos" if p["oos"] else "in_stock"
+        prev = old_items.get(pid)
+        event = None
+        if prev is None:
+            event = "上新"                                   # 新出现(从未见过或曾下架)
+        elif prev.get("status") == "oos" and cur == "in_stock":
+            event = "补货"                                   # 售罄后又有货
+        new_items[pid] = {"status": cur, "missing": 0}
+        if event and (cur == "in_stock" or notify_oos):
+            q = dict(p)
+            q["event"] = event
+            to_notify.append(q)
+
+    if scan_clean:  # 仅在干净扫描时处理"消失",避免偶发抓取失败误判为下架
+        for pid in list(new_items):
+            if pid not in present:
+                new_items[pid]["missing"] = new_items[pid].get("missing", 0) + 1
+                if new_items[pid]["missing"] >= threshold:
+                    del new_items[pid]  # 判定已下架;再次出现时会被当作"上新"
+    return to_notify, new_items
 
 
 # ---------------------------------------------------------------- 通知
@@ -223,7 +271,7 @@ def desktop_toast(title, message):
     try:
         import subprocess
 
-        def _san(s):  # 防止商品名里的引号/反引号破坏 PowerShell 命令
+        def _san(s):
             return str(s).replace('"', "'").replace("`", "'").replace("$", "")
         title, message = _san(title), _san(message)
         ps = f'''
@@ -250,13 +298,14 @@ $n = [Windows.UI.Notifications.ToastNotification]::new($t)
 def build_message(new_products, cap):
     n = len(new_products)
     shown = new_products[:cap]
-    title = f"🔥 Chrome Hearts 上新 {n} 件"
-    lines = [f"### 🔥 Chrome Hearts 上新 {n} 件\n",
+    title = f"🔥 Chrome Hearts 上新/补货 {n} 件"
+    lines = [f"### 🔥 Chrome Hearts {n} 件动态\n",
              f"_{datetime.now():%Y-%m-%d %H:%M:%S}_\n"]
     for p in shown:
+        tag = "🆕上新" if p.get("event") == "上新" else "🔄补货"
         stock = "❌已售罄" if p["oos"] else "✅有货"
         price = f"${p['price']}" if p["price"] else ""
-        lines.append(f"**{p['name']}** {price}  {stock}")
+        lines.append(f"**{tag} {p['name']}** {price}  {stock}")
         lines.append(f"- 分类:{p['category']}")
         lines.append(f"- 链接:{p['url']}")
         if p["img"]:
@@ -268,63 +317,63 @@ def build_message(new_products, cap):
 
 
 def notify(cfg, new_products):
-    """推送新品。返回微信推送是否成功(用于决定是否标记已见)。"""
+    """推送。返回微信是否成功(决定是否提交状态)。"""
     cap = cfg.get("max_items_per_message", 40)
     title, desp = build_message(new_products, cap)
     for p in new_products:
-        logger.info("上新: %s %s %s -> %s",
-                    p["name"], p["price"], "OOS" if p["oos"] else "IN-STOCK", p["url"])
+        logger.info("%s: %s %s %s -> %s", p.get("event", "上新"), p["name"],
+                    p["price"], "OOS" if p["oos"] else "IN-STOCK", p["url"])
     ok = push_serverchan(cfg.get("serverchan_sendkey", ""), title, desp)
     logger.info("微信推送 %s", "成功 ✅" if ok else "失败 ⚠️(下轮重试)")
     if cfg.get("desktop_notification", True):
         names = "、".join(p["name"] for p in new_products[:3])
-        desktop_toast(f"Chrome Hearts 上新 {len(new_products)} 件", names)
+        desktop_toast(f"Chrome Hearts 上新/补货 {len(new_products)} 件", names)
     return ok
 
 
-# ---------------------------------------------------------------- 一轮处理(--once 与常驻循环共用)
-def process(cfg, seen, first_run):
-    """跑一轮:就地更新 seen,落盘状态。返回今天日期字符串。"""
-    candidates, total, ncat = scan(cfg, seen)
-    cand_pids = {p["pid"] for p in candidates}
+# ---------------------------------------------------------------- 一轮处理
+def process(cfg, old_items, first_run):
+    """跑一轮,返回 (new_items, today)。"""
+    present, total, ncat, failed = scan(cfg)
     today = date.today().isoformat()
+    scan_clean = (failed == 0)
     suppress = first_run and cfg.get("first_run_silent", True)
-    logger.info("扫描完成:品类 %d 个,在架 %d 件,未见过 %d 个%s",
-                ncat, total, len(cand_pids),
-                "(首次运行,仅建立基线,不推送)" if suppress else "")
 
     if suppress:
-        seen |= cand_pids
-        save_state(seen, today)
-        return today
+        new_items = {pid: {"status": ("oos" if p["oos"] else "in_stock"), "missing": 0}
+                     for pid, p in present.items()}
+        logger.info("扫描完成:品类 %d 个,在架 %d 件 —— 首次运行,建立基线 %d 个,不推送。",
+                    ncat, total, len(new_items))
+        save_state(new_items, today)
+        return new_items, today
 
-    to_notify = [p for p in candidates
-                 if (not p["oos"]) or cfg.get("notify_out_of_stock", True)]
+    to_notify, new_items = compute_events(old_items, present, scan_clean, cfg)
+    logger.info("扫描完成:品类 %d 个(失败 %d),在架 %d 件,待通知 %d 件(上新/补货)。",
+                ncat, failed, total, len(to_notify))
+
     if to_notify:
         if notify(cfg, to_notify):
-            seen |= cand_pids            # 推送成功才标记已见
-        else:
-            logger.warning("推送失败,本轮不标记这 %d 个,下轮会重试,避免漏推。", len(to_notify))
-    else:
-        seen |= cand_pids                # 没有需要推送的(空或全被抑制),直接标记
+            save_state(new_items, today)        # 推送成功才提交新状态
+            return new_items, today
+        logger.warning("推送失败,不提交状态,下轮重试这 %d 件,避免漏推。", len(to_notify))
+        save_state(old_items, today)            # 仅做每日心跳,事件留待下轮重算
+        return old_items, today
 
-    # 始终落盘:内容确定性,git 仅在 seen 变化或跨天(心跳,防定时任务被禁用)时才提交
-    save_state(seen, today)
-    return today
+    save_state(new_items, today)                # 无需通知:提交(含消失计数/心跳)
+    return new_items, today
 
 
-# ---------------------------------------------------------------- 常驻循环(本地用)
 def monitor_loop():
     cfg = load_config()
-    seen, _stored_date, existed = load_state()
+    items, _d, existed = load_state()
     first_run = not existed
-    logger.info("启动监控 | 静态品类 %d 个(+首页自动发现)| 间隔 %ds | 微信 %s | %s",
+    logger.info("启动监控 | 静态品类 %d(+首页自动发现)| 间隔 %ds | 微信 %s | %s",
                 len(cfg["categories"]), cfg["poll_interval_seconds"],
                 "已配置" if cfg.get("serverchan_sendkey") else "未配置",
-                "首次运行将建立基线" if first_run else f"已知 SKU {len(seen)} 个")
+                "首次将建立基线" if first_run else f"已知商品 {len(items)} 个")
     while True:
         try:
-            process(cfg, seen, first_run)
+            items, _d = process(cfg, items, first_run)
             first_run = False
         except KeyboardInterrupt:
             logger.info("收到中断,退出。")
@@ -337,7 +386,6 @@ def monitor_loop():
 
 # ---------------------------------------------------------------- 命令行入口
 def cmd_selftest():
-    """用香水/袜子验证抓取(常年有货),不需要 sendkey。"""
     cfg = load_config()
     products_all = []
     for slug in ["scents", "socks", "intimates", "baccarat"]:
@@ -346,8 +394,8 @@ def cmd_selftest():
             products_all += ps
             logger.info("[selftest] %s 抓到 %d 件", slug, len(ps))
             for p in ps[:2]:
-                logger.info("    %s | $%s | %s | %s",
-                            p["name"], p["price"], "OOS" if p["oos"] else "有货", p["url"])
+                logger.info("    %s | $%s | %s", p["name"], p["price"],
+                            "OOS" if p["oos"] else "有货")
         except Exception as e:
             logger.error("[selftest] %s 失败: %s", slug, e)
     logger.info("[selftest] 合计 %d 件,%s", len(products_all),
@@ -358,8 +406,8 @@ def cmd_test_push():
     cfg = load_config()
     ok = push_serverchan(cfg.get("serverchan_sendkey", ""),
                          "✅ Chrome Hearts 监控测试",
-                         "这是一条测试消息。如果你在微信收到它,说明 Server酱 配置成功。")
-    logger.info("测试推送 %s", "成功 ✅,去微信看看" if ok else "失败 ⚠️,检查 sendkey")
+                         "这是一条测试消息。收到说明 Server酱 配置成功。")
+    logger.info("测试推送 %s", "成功 ✅" if ok else "失败 ⚠️,检查 sendkey")
 
 
 def main():
@@ -370,8 +418,8 @@ def main():
         cmd_test_push()
     elif "--once" in args:
         cfg = load_config()
-        seen, _stored_date, existed = load_state()
-        process(cfg, seen, first_run=not existed)
+        items, _d, existed = load_state()
+        process(cfg, items, first_run=not existed)
     else:
         monitor_loop()
 
