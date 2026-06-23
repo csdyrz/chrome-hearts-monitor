@@ -19,7 +19,8 @@ Chrome Hearts 官网全品类上新/补货监控
 
 用法:
     python chrome_hearts_monitor.py            # 持续监控(本地常驻)
-    python chrome_hearts_monitor.py --once     # 跑一轮就退出(GitHub Actions 云端用)
+    python chrome_hearts_monitor.py --serve    # 长跑 RUN_SECONDS 秒后退出(GitHub 云端'接力'用)
+    python chrome_hearts_monitor.py --once     # 跑一轮就退出(调试看效果)
     python chrome_hearts_monitor.py --selftest # 验证抓取(无需 sendkey)
     python chrome_hearts_monitor.py --test-push# 发测试消息到微信,验证 Server酱
 """
@@ -106,6 +107,31 @@ def save_state(items, day):
         json.dump({"items": items, "date": day},
                   f, ensure_ascii=False, indent=2, sort_keys=True)
     os.replace(tmp, STATE_PATH)
+
+
+def git_commit_state(day):
+    """长跑模式下把变化后的 state.json 提交回仓库,保证'接力'的下一棒不丢基线、不重复推。
+    仅在环境变量 COMMIT_STATE=1(由 GitHub Actions 设置)时启用;本地运行完全不碰 git。
+    save_state 是确定性写入,内容不变就没有 git diff,因此绝大多数轮次是 no-op。"""
+    if os.environ.get("COMMIT_STATE") != "1":
+        return
+    import subprocess
+
+    def run(args):
+        return subprocess.run(args, cwd=HERE, capture_output=True, text=True)
+    try:
+        if not run(["git", "status", "--porcelain", "state.json"]).stdout.strip():
+            return  # 状态无变化,跳过
+        run(["git", "config", "user.name", "github-actions[bot]"])
+        run(["git", "config", "user.email", "github-actions[bot]@users.noreply.github.com"])
+        run(["git", "add", "state.json"])
+        run(["git", "commit", "-m", f"chore: update state {day}"])
+        if run(["git", "push"]).returncode != 0:  # 远程被推进则 rebase 再推,防丢状态
+            run(["git", "pull", "--rebase", "--autostash"])
+            run(["git", "push"])
+        logger.info("state.json 已提交回仓库。")
+    except Exception as e:
+        logger.warning("提交 state.json 失败(忽略,下轮再试): %s", e)
 
 
 # ---------------------------------------------------------------- 品类发现 / 抓取
@@ -378,23 +404,32 @@ def process(cfg, old_items, first_run):
     return new_items, today
 
 
-def monitor_loop():
+def monitor_loop(max_seconds=None, commit=False):
+    """持续监控。max_seconds 不为空时跑满该时长就正常退出(GitHub 长跑'接力'用);
+    commit=True 时每轮把变化的 state.json 提交回仓库(配合 COMMIT_STATE=1 生效)。"""
     cfg = load_config()
     items, _d, existed = load_state()
     first_run = not existed
-    logger.info("启动监控 | 静态品类 %d(+首页自动发现)| 间隔 %ds | 微信 %s | %s",
+    logger.info("启动监控 | 静态品类 %d(+首页自动发现)| 间隔 %ds | 微信 %s | %s%s",
                 len(cfg["categories"]), cfg["poll_interval_seconds"],
                 "已配置" if cfg.get("serverchan_sendkey") else "未配置",
-                "首次将建立基线" if first_run else f"已知商品 {len(items)} 个")
+                "首次将建立基线" if first_run else f"已知商品 {len(items)} 个",
+                f" | 本次长跑 {max_seconds}s" if max_seconds else "")
+    deadline = (time.monotonic() + max_seconds) if max_seconds else None
     while True:
         try:
-            items, _d = process(cfg, items, first_run)
+            items, day = process(cfg, items, first_run)
             first_run = False
+            if commit:
+                git_commit_state(day)
         except KeyboardInterrupt:
             logger.info("收到中断,退出。")
             break
         except Exception as e:
             logger.exception("本轮异常: %s", e)
+        if deadline is not None and time.monotonic() >= deadline:
+            logger.info("达到本次长跑时长上限,正常退出,交棒下一次运行。")
+            break
         interval = cfg["poll_interval_seconds"]
         time.sleep(interval + random.uniform(0, interval * 0.2))
 
@@ -431,6 +466,9 @@ def main():
         cmd_selftest()
     elif "--test-push" in args:
         cmd_test_push()
+    elif "--serve" in args:
+        run_seconds = int(os.environ.get("RUN_SECONDS", "20700"))  # ~5h45m,留足 6h job 上限余量
+        monitor_loop(max_seconds=run_seconds, commit=True)
     elif "--once" in args:
         cfg = load_config()
         items, _d, existed = load_state()

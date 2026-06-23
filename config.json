@@ -1,6 +1,6 @@
 {
   "serverchan_sendkey": "",
-  "poll_interval_seconds": 90,
+  "poll_interval_seconds": 60,
   "auto_discover_categories": true,
   "categories": [
     "shop", "mens", "womens",

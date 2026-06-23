@@ -14,7 +14,7 @@
 ## ⚠️ 必读:能力边界
 
 - Chrome Hearts 是**限量秒罄**模式:衣服上架后可能几分钟甚至几十秒就售罄。
-  脚本默认每 90 秒扫一轮,**理论上可能错过"上架→秒罄→下架"全过程极快的款**。
+  脚本默认每 60 秒扫一轮,**理论上可能错过"上架→秒罄→下架"全过程极快的款**。
   好消息是:实测官网**售罄商品通常仍会以 `OUT OF STOCK` 留在列表里一段时间**,
   所以即使没抢到,也大概率能收到"上新(已售罄)"通知。想更激进可把间隔调到 30~60 秒。
 - 微信无法被个人脚本直接调用,这里走 **Server酱** 中转(它把消息发到你关注的服务号)。
@@ -75,7 +75,7 @@ python chrome_hearts_monitor.py --selftest
 | 字段 | 含义 |
 |---|---|
 | `serverchan_sendkey` | Server酱 SendKey |
-| `poll_interval_seconds` | 轮询间隔秒数(默认 90;想更快设 30~60) |
+| `poll_interval_seconds` | 轮询间隔秒数(默认 60;不建议低于 30,易触发风控) |
 | `categories` | 监控的分类 slug 列表(默认覆盖卫衣/T恤/外套/裤子等) |
 | `notify_out_of_stock` | 售罄的新品是否也通知(默认 true) |
 | `desktop_notification` | 是否弹 Windows 桌面通知(默认 true) |

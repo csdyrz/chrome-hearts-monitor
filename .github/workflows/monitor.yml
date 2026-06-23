@@ -1,22 +1,28 @@
 name: chrome-hearts-monitor
 
-# 每 5 分钟在 GitHub 云端跑一次(电脑关机也照跑)。
-# 注意:GitHub 定时任务最快 5 分钟一次,且高峰期偶有延迟,属正常现象。
+# 分钟级监控策略(关键):
+#   GitHub 的 schedule(定时)对个人仓库是"尽力而为、空闲才跑",实测会被限流到每隔
+#   1.5~6 小时才跑一次,根本给不了分钟级。所以这里改成【单 job 内部长跑】:
+#   一个 job 内部每分钟扫一次、连跑约 5h45m,进程几乎一直在线 = 分钟级实时推送。
+#   一棒跑完后:① concurrency 排队的下一棒会立刻顶上;② cron 仅作兜底,万一链条断了
+#   靠它重启;③ 若配了 PAT_TOKEN,跑完会主动再触发一棒,衔接更无缝。
+#   公开仓库的 Actions 不限分钟数,可全天候免费长跑。
 on:
   schedule:
-    - cron: "*/5 * * * *"
-  workflow_dispatch: {}   # 也支持在网页上手动触发
+    - cron: "*/5 * * * *"   # 仅兜底:确保链条断了也能在不久后被重新拉起
+  workflow_dispatch: {}     # 支持网页手动触发 / 自我接力
 
 permissions:
-  contents: write          # 允许把 state.json 提交回仓库以保留基线
+  contents: write           # 把 state.json 提交回仓库以保留基线
 
 concurrency:
-  group: ch-monitor        # 避免两次定时任务重叠互相覆盖
+  group: ch-monitor         # 同组只允许一个在跑,新触发的排队等当前这棒结束后无缝接上
   cancel-in-progress: false
 
 jobs:
   check:
     runs-on: ubuntu-latest
+    timeout-minutes: 360     # GitHub 单 job 最长 6h,长跑时长(RUN_SECONDS)需留足余量
     steps:
       - uses: actions/checkout@v4
 
@@ -27,20 +33,21 @@ jobs:
       - name: 安装依赖
         run: pip install requests beautifulsoup4
 
-      - name: 运行监控
+      - name: 长跑监控(单 job 内每分钟扫一次,连跑 ~5h45m)
         env:
           SERVERCHAN_SENDKEY: ${{ secrets.SERVERCHAN_SENDKEY }}
-        run: python chrome_hearts_monitor.py --once
+          RUN_SECONDS: "20700"   # 5h45m;脚本跑满即正常退出交棒
+          COMMIT_STATE: "1"      # 长跑期间由脚本自己把变化的 state.json 提交回仓库
+        run: python chrome_hearts_monitor.py --serve
 
-      - name: 状态有变化时保存回仓库
+      - name: 接力下一棒(可选,配 PAT_TOKEN 衔接更无缝;没配则由 schedule 兜底)
+        if: always()
+        env:
+          PAT: ${{ secrets.PAT_TOKEN }}
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
         run: |
-          if [ -n "$(git status --porcelain state.json)" ]; then
-            git config user.name "github-actions[bot]"
-            git config user.email "github-actions[bot]@users.noreply.github.com"
-            git add state.json
-            git commit -m "chore: update state $(date -u +%FT%TZ)"
-            # 若远程已被其它提交推进,先 rebase 再推,避免状态丢失/红叉
-            git push || { git pull --rebase --autostash && git push; }
+          if [ -n "$PAT" ]; then
+            gh workflow run monitor.yml && echo "已自我接力 ✅" || echo "接力触发失败,靠 schedule 兜底重启。"
           else
-            echo "无新增 SKU,状态未变,跳过提交。"
+            echo "未配置 PAT_TOKEN,跳过自我接力(默认由 schedule + 排队兜底衔接)。"
           fi
