@@ -18,7 +18,7 @@
     },
     "148310SLVXXX186": {
       "missing": 0,
-      "oos_streak": 1001,
+      "oos_streak": 1002,
       "status": "oos"
     },
     "151407XXXXXX00S": {
@@ -43,7 +43,7 @@
     },
     "162006CRYXXX271": {
       "missing": 0,
-      "oos_streak": 1001,
+      "oos_streak": 1002,
       "status": "oos"
     },
     "162006CRYXXX272": {
@@ -113,7 +113,7 @@
     },
     "176354MB3XXX465": {
       "missing": 0,
-      "oos_streak": 1001,
+      "oos_streak": 1002,
       "status": "oos"
     },
     "176354XXXXXX349": {
@@ -169,6 +169,14 @@
       "oos_streak": 0,
       "status": "in_stock"
     },
+    "180539C4CXXX593": {
+      "missing": 0,
+      "notified": {
+        "上新": 1784135089
+      },
+      "oos_streak": 1,
+      "status": "in_stock"
+    },
     "191715D5DXXX408": {
       "missing": 0,
       "oos_streak": 0,
@@ -181,12 +189,12 @@
     },
     "201581AFWXXX031": {
       "missing": 0,
-      "oos_streak": 1001,
+      "oos_streak": 1002,
       "status": "oos"
     },
     "201582AFWXXX031": {
       "missing": 0,
-      "oos_streak": 1001,
+      "oos_streak": 1002,
       "status": "oos"
     },
     "201583AFWXXX033": {
@@ -246,12 +254,12 @@
     },
     "214141D7BXXX01S": {
       "missing": 0,
-      "oos_streak": 1001,
+      "oos_streak": 1002,
       "status": "oos"
     },
     "214141D7BXXX01T": {
       "missing": 0,
-      "oos_streak": 1001,
+      "oos_streak": 1002,
       "status": "oos"
     }
   }
