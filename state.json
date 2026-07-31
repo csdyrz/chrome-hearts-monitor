@@ -1,5 +1,5 @@
 {
-  "date": "2026-07-30",
+  "date": "2026-07-31",
   "items": {
     "092826AI6XXXXXX": {
       "missing": 0,
@@ -18,7 +18,7 @@
     },
     "148310SLVXXX186": {
       "missing": 0,
-      "oos_streak": 7166,
+      "oos_streak": 7167,
       "status": "oos"
     },
     "151407XXXXXX00S": {
@@ -43,7 +43,7 @@
     },
     "162006CRYXXX271": {
       "missing": 0,
-      "oos_streak": 7166,
+      "oos_streak": 7167,
       "status": "oos"
     },
     "162006CRYXXX272": {
@@ -61,7 +61,7 @@
       "notified": {
         "补货": 1784193582
       },
-      "oos_streak": 1585,
+      "oos_streak": 1586,
       "status": "oos"
     },
     "162045CRYXXX273": {
@@ -263,12 +263,12 @@
     },
     "214141D7BXXX01S": {
       "missing": 0,
-      "oos_streak": 7166,
+      "oos_streak": 7167,
       "status": "oos"
     },
     "214141D7BXXX01T": {
       "missing": 0,
-      "oos_streak": 7166,
+      "oos_streak": 7167,
       "status": "oos"
     },
     "21761920SE5101X": {
