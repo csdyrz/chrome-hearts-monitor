@@ -300,6 +300,7 @@ def compute_events(old_items, present, scan_clean, cfg, now=None):
                      "notified": dict(prev["notified"]) if prev and prev.get("notified") else {}}
         else:
             entry = dict(prev)
+            entry["notified"] = dict(prev.get("notified", {}))
             entry["missing"] = 0
         # 售罄一律要连续 oos_confirm 轮观测一致才确认(新条目也不例外,否则首见误判 oos
         # 会立刻给"补货"上膛,下一轮翻回有货就误推),防解析/页面抖动造成反复推送
