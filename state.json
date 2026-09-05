@@ -27,7 +27,7 @@
     },
     "148310SLVXXX186": {
       "missing": 0,
-      "oos_streak": 22238,
+      "oos_streak": 22239,
       "status": "oos"
     },
     "151407XXXXXX00S": {
@@ -65,7 +65,7 @@
     },
     "162008CRYXXX271": {
       "missing": 0,
-      "oos_streak": 13458,
+      "oos_streak": 13459,
       "status": "oos"
     },
     "162008CRYXXX272": {
@@ -142,7 +142,7 @@
       "notified": {
         "补货": 1788193974
       },
-      "oos_streak": 1632,
+      "oos_streak": 1633,
       "status": "oos"
     },
     "176354XXXXXX349": {
@@ -228,8 +228,8 @@
       "notified": {
         "补货": 1788614004
       },
-      "oos_streak": 2,
-      "status": "in_stock"
+      "oos_streak": 3,
+      "status": "oos"
     },
     "202334AFWXXX030": {
       "missing": 0,
@@ -268,12 +268,12 @@
     },
     "214141D7BXXX01S": {
       "missing": 0,
-      "oos_streak": 22238,
+      "oos_streak": 22239,
       "status": "oos"
     },
     "214141D7BXXX01T": {
       "missing": 0,
-      "oos_streak": 22238,
+      "oos_streak": 22239,
       "status": "oos"
     },
     "21761920SE5101X": {
