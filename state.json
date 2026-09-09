@@ -16,29 +16,34 @@
       "status": "delisted"
     },
     "146053XXXXXX00R": {
-      "missing": 1,
+      "delisted_at": 1788984732,
+      "missing": 0,
       "oos_streak": 0,
-      "status": "in_stock"
+      "status": "delisted"
     },
     "146053XXXXXX142": {
-      "missing": 1,
+      "delisted_at": 1788984732,
+      "missing": 0,
       "oos_streak": 0,
-      "status": "in_stock"
+      "status": "delisted"
     },
     "148310SLVXXX186": {
-      "missing": 1,
-      "oos_streak": 23703,
-      "status": "oos"
+      "delisted_at": 1788984732,
+      "missing": 0,
+      "oos_streak": 0,
+      "status": "delisted"
     },
     "151407XXXXXX00S": {
-      "missing": 1,
+      "delisted_at": 1788984732,
+      "missing": 0,
       "oos_streak": 0,
-      "status": "in_stock"
+      "status": "delisted"
     },
     "151407XXXXXX169": {
-      "missing": 1,
+      "delisted_at": 1788984732,
+      "missing": 0,
       "oos_streak": 0,
-      "status": "in_stock"
+      "status": "delisted"
     },
     "158552BLKXXXXXX": {
       "missing": 0,
@@ -65,7 +70,7 @@
     },
     "162008CRYXXX271": {
       "missing": 0,
-      "oos_streak": 14924,
+      "oos_streak": 14925,
       "status": "oos"
     },
     "162008CRYXXX272": {
@@ -142,7 +147,7 @@
       "notified": {
         "补货": 1788193974
       },
-      "oos_streak": 3098,
+      "oos_streak": 3099,
       "status": "oos"
     },
     "176354XXXXXX349": {
@@ -231,7 +236,7 @@
       "notified": {
         "补货": 1788614004
       },
-      "oos_streak": 955,
+      "oos_streak": 956,
       "status": "oos"
     },
     "202334AFWXXX030": {
@@ -255,14 +260,16 @@
       "status": "in_stock"
     },
     "208531BLUXXX752": {
-      "missing": 1,
+      "delisted_at": 1788984732,
+      "missing": 0,
       "oos_streak": 0,
-      "status": "in_stock"
+      "status": "delisted"
     },
     "208531PNKXXX751": {
-      "missing": 1,
+      "delisted_at": 1788984732,
+      "missing": 0,
       "oos_streak": 0,
-      "status": "in_stock"
+      "status": "delisted"
     },
     "209670XXXXXXXXX": {
       "missing": 0,
@@ -270,14 +277,16 @@
       "status": "in_stock"
     },
     "214141D7BXXX01S": {
-      "missing": 1,
-      "oos_streak": 23703,
-      "status": "oos"
+      "delisted_at": 1788984732,
+      "missing": 0,
+      "oos_streak": 0,
+      "status": "delisted"
     },
     "214141D7BXXX01T": {
-      "missing": 1,
-      "oos_streak": 23703,
-      "status": "oos"
+      "delisted_at": 1788984732,
+      "missing": 0,
+      "oos_streak": 0,
+      "status": "delisted"
     },
     "218126MABXXX00D": {
       "delisted_at": 1788888033,
