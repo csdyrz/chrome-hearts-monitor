@@ -2,7 +2,7 @@
   "date": "2026-09-12",
   "items": {
     "053702REDXXX316": {
-      "missing": 0,
+      "missing": 1,
       "notified": {
         "上新": 1789063123,
         "补货": 1789202137
@@ -79,7 +79,7 @@
     },
     "162008CRYXXX271": {
       "missing": 0,
-      "oos_streak": 15793,
+      "oos_streak": 15794,
       "status": "oos"
     },
     "162008CRYXXX272": {
@@ -156,7 +156,7 @@
       "notified": {
         "补货": 1788193974
       },
-      "oos_streak": 3967,
+      "oos_streak": 3968,
       "status": "oos"
     },
     "176354XXXXXX349": {
@@ -245,7 +245,7 @@
       "notified": {
         "补货": 1788614004
       },
-      "oos_streak": 1824,
+      "oos_streak": 1825,
       "status": "oos"
     },
     "202334AFWXXX030": {
