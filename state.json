@@ -4,10 +4,11 @@
     "053702REDXXX316": {
       "missing": 0,
       "notified": {
-        "上新": 1789063123
+        "上新": 1789063123,
+        "补货": 1789202137
       },
-      "oos_streak": 3,
-      "status": "oos"
+      "oos_streak": 0,
+      "status": "in_stock"
     },
     "092826AI6XXXXXX": {
       "missing": 0,
@@ -78,7 +79,7 @@
     },
     "162008CRYXXX271": {
       "missing": 0,
-      "oos_streak": 15704,
+      "oos_streak": 15705,
       "status": "oos"
     },
     "162008CRYXXX272": {
@@ -155,7 +156,7 @@
       "notified": {
         "补货": 1788193974
       },
-      "oos_streak": 3878,
+      "oos_streak": 3879,
       "status": "oos"
     },
     "176354XXXXXX349": {
@@ -244,7 +245,7 @@
       "notified": {
         "补货": 1788614004
       },
-      "oos_streak": 1735,
+      "oos_streak": 1736,
       "status": "oos"
     },
     "202334AFWXXX030": {
