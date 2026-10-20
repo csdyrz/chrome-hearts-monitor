@@ -17,7 +17,7 @@
       "status": "in_stock"
     },
     "146053XXXXXX00R": {
-      "missing": 0,
+      "missing": 1,
       "notified": {
         "上新": 1790893863
       },
@@ -25,7 +25,7 @@
       "status": "in_stock"
     },
     "146053XXXXXX142": {
-      "missing": 0,
+      "missing": 1,
       "notified": {
         "上新": 1790893863
       },
@@ -33,7 +33,7 @@
       "status": "in_stock"
     },
     "148310SLVXXX186": {
-      "missing": 0,
+      "missing": 1,
       "notified": {
         "上新": 1790893863
       },
@@ -41,7 +41,7 @@
       "status": "oos"
     },
     "151407XXXXXX00S": {
-      "missing": 0,
+      "missing": 1,
       "notified": {
         "上新": 1790893863
       },
@@ -49,7 +49,7 @@
       "status": "in_stock"
     },
     "151407XXXXXX169": {
-      "missing": 0,
+      "missing": 1,
       "notified": {
         "上新": 1790893863
       },
@@ -81,7 +81,7 @@
     },
     "162008CRYXXX271": {
       "missing": 0,
-      "oos_streak": 28435,
+      "oos_streak": 28436,
       "status": "oos"
     },
     "162008CRYXXX272": {
@@ -97,7 +97,7 @@
       "notified": {
         "补货": 1789087851
       },
-      "oos_streak": 10432,
+      "oos_streak": 10433,
       "status": "oos"
     },
     "162045CRYXXX274": {
@@ -181,7 +181,7 @@
       "notified": {
         "补货": 1792161337
       },
-      "oos_streak": 1030,
+      "oos_streak": 1031,
       "status": "oos"
     },
     "177732CRYXXX042": {
@@ -194,7 +194,7 @@
       "notified": {
         "补货": 1790107904
       },
-      "oos_streak": 7675,
+      "oos_streak": 7676,
       "status": "oos"
     },
     "177734CRYXXX042": {
@@ -250,7 +250,7 @@
       "notified": {
         "补货": 1788614004
       },
-      "oos_streak": 14466,
+      "oos_streak": 14467,
       "status": "oos"
     },
     "202334AFWXXX030": {
@@ -274,7 +274,7 @@
       "status": "in_stock"
     },
     "208531BLUXXX752": {
-      "missing": 0,
+      "missing": 1,
       "notified": {
         "上新": 1790893863
       },
@@ -282,7 +282,7 @@
       "status": "in_stock"
     },
     "208531PNKXXX751": {
-      "missing": 0,
+      "missing": 1,
       "notified": {
         "上新": 1790893863
       },
@@ -295,7 +295,7 @@
       "status": "in_stock"
     },
     "214141D7BXXX01S": {
-      "missing": 0,
+      "missing": 1,
       "notified": {
         "上新": 1790893863
       },
@@ -303,7 +303,7 @@
       "status": "oos"
     },
     "214141D7BXXX01T": {
-      "missing": 0,
+      "missing": 1,
       "notified": {
         "上新": 1790893863
       },
