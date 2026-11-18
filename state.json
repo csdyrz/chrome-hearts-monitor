@@ -57,7 +57,7 @@
         "上新": 1794945840,
         "补货": 1795016601
       },
-      "oos_streak": 1,
+      "oos_streak": 2,
       "status": "in_stock"
     },
     "158552BLKXXXXXX": {
@@ -80,7 +80,7 @@
     },
     "162006CRYXXX272": {
       "missing": 0,
-      "oos_streak": 1311,
+      "oos_streak": 1312,
       "status": "oos"
     },
     "162008CRYXXX271": {
@@ -191,7 +191,7 @@
       "notified": {
         "补货": 1792161337
       },
-      "oos_streak": 11188,
+      "oos_streak": 11189,
       "status": "oos"
     },
     "177732CRYXXX042": {
@@ -204,7 +204,7 @@
       "notified": {
         "补货": 1790107904
       },
-      "oos_streak": 17833,
+      "oos_streak": 17834,
       "status": "oos"
     },
     "177734CRYXXX042": {
@@ -280,7 +280,7 @@
       "notified": {
         "补货": 1788614004
       },
-      "oos_streak": 24624,
+      "oos_streak": 24625,
       "status": "oos"
     },
     "202334AFWXXX030": {
